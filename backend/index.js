@@ -1,0 +1,35 @@
+// server.js or index.js
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Routes
+const authRoutes = require("./routes/authRoutes");
+const groupRoutes = require("./routes/groupRoutes");
+const problemRoutes = require("./routes/problemRoutes");
+const groupProblemRoutes = require("./routes/groupProblemRoutes");  // NEW
+const memberRoutes = require("./routes/memberRoutes");
+const progressRoutes = require("./routes/progressRoutes");
+
+app.use("/api/auth", authRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/groups", groupProblemRoutes);  // NEW - handles /groups/:groupId/problems
+app.use("/api/problems", problemRoutes);
+app.use("/api/groups", memberRoutes);
+app.use("/api/progress", progressRoutes);
+
+// Health check
+app.get("/", (req, res) => {
+  res.json({ message: "DSA Arena API is running" });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

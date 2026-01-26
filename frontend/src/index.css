@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+
+  --color-bg: hsl(224 71% 4%);
+  --color-card: hsl(224 71% 10%);
+  --color-border: hsl(224 71% 18%);
+  --color-primary: hsl(210 100% 60%);
+  --color-secondary: hsl(160 100% 50%);
+  --color-muted: hsl(220 20% 60%);
+
+
+  --color-input: hsl(224 71% 15%);
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-white;
+  }
+}
