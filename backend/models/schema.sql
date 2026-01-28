@@ -96,3 +96,21 @@ ALTER TABLE problems
 ADD COLUMN IF NOT EXISTS platform_link VARCHAR(500);
 
 COMMENT ON COLUMN problems.platform_link IS 'Link to the problem on external platform (LeetCode, HackerRank, etc.)';
+
+
+-- Migration: Add soft delete support
+
+-- Add deleted_at to groups
+ALTER TABLE groups 
+ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;
+
+-- Add deleted_at to problems
+ALTER TABLE problems 
+ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;
+
+-- Add indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_groups_deleted_at ON groups(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_problems_deleted_at ON problems(deleted_at);
+
+COMMENT ON COLUMN groups.deleted_at IS 'Soft delete timestamp - NULL means active';
+COMMENT ON COLUMN problems.deleted_at IS 'Soft delete timestamp - NULL means active';

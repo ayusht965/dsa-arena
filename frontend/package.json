@@ -13,8 +13,10 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.13.2",
+    "date-fns": "^4.1.0",
     "prop-types": "^15.8.1",
     "react": "^19.2.0",
+    "react-calendar-heatmap": "^1.10.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.12.0"
   },
