@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
+import Logo from "../logo";
 
 export default function AppLayout({ children, activePage = "dashboard" }) {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export default function AppLayout({ children, activePage = "dashboard" }) {
         <div className="p-6 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-black font-bold text-xl">
-              f
+              <Logo className="w-10 h-10" />
             </div>
             <h1 className="text-xl font-bold">DSA Arena</h1>
           </div>
@@ -129,7 +130,7 @@ export default function AppLayout({ children, activePage = "dashboard" }) {
             {/* center logo + name */}
             <div className="flex items-center gap-3 absolute left-1/2 -translate-x-1/2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-black font-bold">
-                f
+                <Logo className="w-10 h-10" />
             </div>
             <h1 className="text-lg font-bold">DSA Arena</h1>
             </div>

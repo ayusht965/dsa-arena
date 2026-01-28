@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" height="200" width="200">
+  
+  <circle fill="#0f172a" r="90" cy="100" cx="100"></circle>
+  
+  <defs>
+    <linearGradient y2="100%" x2="100%" y1="0%" x1="0%" id="grad">
+      <stop stop-color="#3b82f6" offset="0%"></stop>
+      <stop stop-color="#06b6d4" offset="100%"></stop>
+    </linearGradient>
+  </defs>
+  <circle stroke-width="12" stroke="url(#grad)" fill="none" r="80" cy="100" cx="100"></circle>
+  
+  <text text-anchor="middle" fill="white" font-weight="bold" font-size="60" font-family="Arial, sans-serif" y="110" x="100">DSA</text>
+  
+  <text text-anchor="middle" fill="#3b82f6" font-size="30" font-family="Arial, sans-serif" y="150" x="100">Arena</text>
+</svg>
