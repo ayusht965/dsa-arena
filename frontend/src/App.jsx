@@ -6,6 +6,7 @@ import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
 import MyProblems from "./pages/MyProblems";
 import ProblemView from "./pages/ProblemView";
+import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
   return (
@@ -13,11 +14,14 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/groups" element={<Groups />} />
-        <Route path="/groups/:id" element={<GroupDetail />} />
-        <Route path="/my-problems" element={<MyProblems />} />
-        <Route path="/problems/:id" element={<ProblemView />} />
+
+        <Route element={<PrivateRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/groups" element={<Groups />} />
+          <Route path="/groups/:id" element={<GroupDetail />} />
+          <Route path="/my-problems" element={<MyProblems />} />
+          <Route path="/problems/:id" element={<ProblemView />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
