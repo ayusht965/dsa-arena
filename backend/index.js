@@ -8,12 +8,11 @@ const app = express();
 app.use(cors({
   origin: [
     "https://dsa-arena-beta.vercel.app",
-    "https://*.vercel.app",           // still fine here (origin strings allow wildcards)
     "http://localhost:5173",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: false,
+  credentials: true,
   optionsSuccessStatus: 204
 }));
 
