@@ -18,3 +18,22 @@
     @apply bg-bg text-white;
   }
 }
+
+.react-calendar-heatmap .color-empty { fill: #2d3748; }
+.react-calendar-heatmap .color-scale-1 { fill: #1e40af; }
+.react-calendar-heatmap .color-scale-2 { fill: #3b82f6; }
+.react-calendar-heatmap .color-scale-3 { fill: #60a5fa; }
+.react-calendar-heatmap .color-scale-4 { fill: #93c5fd; }
+.react-calendar-heatmap text { fill: #9ca3af; font-size: 10px; }
+.react-calendar-heatmap rect:hover { opacity: 0.8; }
+
+.react-calendar-heatmap rect {
+  rx: 2;
+  transition: transform 0.15s ease, stroke 0.15s ease;
+}
+
+.react-calendar-heatmap rect:hover {
+  stroke: #22d3ee;
+  stroke-width: 1;
+  transform: scale(1);
+}

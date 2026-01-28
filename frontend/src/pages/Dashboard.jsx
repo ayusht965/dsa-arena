@@ -3,12 +3,21 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import API from "../api/api";
+import CalendarHeatmap from "react-calendar-heatmap";
+import "react-calendar-heatmap/dist/styles.css";
+import { subYears, format } from "date-fns";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
+  const [hoveredDay, setHoveredDay] = useState(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+
+  const TOOLTIP_WIDTH = 260;
+  const TOOLTIP_HEIGHT = 180;
+  const OFFSET = 12;
 
   useEffect(() => {
     fetchDashboardData();
@@ -53,7 +62,33 @@ export default function Dashboard() {
     );
   }
 
-  const { user, stats, recentActivity } = dashboardData;
+  const { user, stats, recentActivity, heatmapData } = dashboardData || {};
+
+  const heatmapValues =
+    heatmapData?.map(item => ({
+      date: item.date,
+      count: item.count || 0,
+      problems: item.problems || []
+    })) || [];
+
+    const getTooltipStyle = () => {
+    const { innerWidth, innerHeight } = window;
+
+    let left = hoverPosition.x + OFFSET;
+    let top = hoverPosition.y + OFFSET;
+
+    // If tooltip goes beyond right edge → show on left
+    if (left + TOOLTIP_WIDTH > innerWidth) {
+      left = hoverPosition.x - TOOLTIP_WIDTH - OFFSET;
+    }
+
+    // If tooltip goes beyond bottom edge → show above
+    if (top + TOOLTIP_HEIGHT > innerHeight) {
+      top = hoverPosition.y - TOOLTIP_HEIGHT - OFFSET;
+    }
+
+    return { left, top };
+  };
 
   return (
     <AppLayout activePage="dashboard">
@@ -145,6 +180,88 @@ export default function Dashboard() {
             {stats.timeSpent}
           </div>
           <p className="text-sm text-muted">spent practicing</p>
+        </div>
+      </div>
+
+      {/* Heatmap Section - NEW */}
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-xl mb-8">
+        <h2 className="text-2xl font-bold mb-4">Activity Heatmap</h2>
+        <p className="text-muted mb-4">Your problem-solving activity over the last year</p>
+
+        <div
+          className="relative"
+          onMouseLeave={() => setHoveredDay(null)}
+        >
+          <CalendarHeatmap
+            startDate={subYears(new Date(), 1)}
+            endDate={new Date()}
+            values={heatmapValues}
+            showWeekdayLabels
+            classForValue={(value) => {
+              if (!value || value.count === 0) return "color-empty";
+              if (value.count <= 2) return "color-scale-1";
+              if (value.count <= 5) return "color-scale-2";
+              if (value.count <= 10) return "color-scale-3";
+              return "color-scale-4";
+            }}
+            tooltipDataAttrs={null}
+            transformDayElement={(element, value) => {
+              if (!value) return element;
+
+              return (
+                <g
+                  onMouseEnter={(e) => {
+                    setHoveredDay(value);
+                    setHoverPosition({ x: e.clientX, y: e.clientY });
+                  }}
+                  onMouseMove={(e) => {
+                    setHoverPosition({ x: e.clientX, y: e.clientY });
+                  }}
+                >
+                  {element}
+                </g>
+              );
+            }}
+          />
+
+          {/* Hover Tooltip */}
+          {hoveredDay && (
+            <div
+              className="fixed z-50 bg-card border border-border rounded-xl p-4 shadow-xl w-64 pointer-events-none"
+              style={getTooltipStyle()}
+            >
+              <p className="font-semibold mb-1">
+                {format(new Date(hoveredDay.date), "MMM d, yyyy")}
+              </p>
+
+              <p className="text-sm text-muted mb-2">
+                {hoveredDay.count} problem{hoveredDay.count !== 1 && "s"} solved
+              </p>
+
+              {hoveredDay.problems.length > 0 && (
+                <ul className="text-sm space-y-1 max-h-32 overflow-auto">
+                  {hoveredDay.problems.map((p) => (
+                    <li key={p.id} className="truncate">
+                      • {p.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+
+        <div className="flex justify-end mt-4 text-sm text-muted">
+          <span className="mr-2">Less</span>
+          <div className="flex gap-1">
+            <div className="w-4 h-4 bg-gray-800"></div>
+            <div className="w-4 h-4 bg-blue-900"></div>
+            <div className="w-4 h-4 bg-blue-700"></div>
+            <div className="w-4 h-4 bg-blue-500"></div>
+            <div className="w-4 h-4 bg-blue-300"></div>
+          </div>
+          <span className="ml-2">More</span>
         </div>
       </div>
 

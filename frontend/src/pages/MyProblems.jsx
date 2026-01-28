@@ -9,7 +9,7 @@ export default function MyProblems() {
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, completed, in_progress, not_started
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     fetchProblems();
@@ -77,7 +77,7 @@ export default function MyProblems() {
     <AppLayout activePage="my-problems">
       <h1 className="text-3xl font-bold mb-2">My Problems</h1>
       <p className="text-muted mb-8">
-        All problems assigned to you across your groups
+        All problems assigned to you across your groups (including historical records)
       </p>
 
       {/* Stats Cards */}
@@ -156,16 +156,34 @@ export default function MyProblems() {
         ) : (
           filteredProblems.map((problem) => {
             const statusInfo = getStatusInfo(problem.status);
+            const isProblemDeleted = problem.deleted_at !== null;
+            const isGroupDeleted = problem.group_deleted_at !== null;
+            
             return (
               <div
                 key={problem.id}
-                className="bg-card border border-border rounded-2xl p-6 shadow-xl hover:shadow-2xl transition"
+                className={`bg-card border border-border rounded-2xl p-6 shadow-xl hover:shadow-2xl transition ${
+                  isProblemDeleted || isGroupDeleted ? 'opacity-75' : ''
+                }`}
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-1">{problem.title}</h3>
-                    <p className="text-sm text-muted">
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      <h3 className="text-xl font-bold">{problem.title}</h3>
+                      {isProblemDeleted && (
+                        <span className="text-xs bg-red-950/50 text-red-400 px-2 py-1 rounded">
+                          Problem Deleted
+                        </span>
+                      )}
+                      {isGroupDeleted && (
+                        <span className="text-xs bg-orange-950/50 text-orange-400 px-2 py-1 rounded">
+                          Group Deleted
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted mt-1">
                       From: {problem.group_name}
+                      {isGroupDeleted && " (Deleted)"}
                     </p>
                   </div>
                   <span className={`font-medium ${statusInfo.color} flex items-center gap-1`}>
@@ -186,6 +204,14 @@ export default function MyProblems() {
                       </div>
                     </div>
                   )}
+                  {isProblemDeleted && (
+                    <div>
+                      <div className="text-muted">Deleted</div>
+                      <div className="font-medium text-red-400">
+                        {new Date(problem.deleted_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {problem.notes && (
@@ -199,7 +225,7 @@ export default function MyProblems() {
                   onClick={() => navigate(`/problems/${problem.id}`)}
                   className="w-full sm:w-auto px-6 py-3 bg-primary/20 text-primary font-semibold rounded-lg hover:bg-primary/30 transition"
                 >
-                  {problem.status === 'not_started' ? 'Start Problem' : 'View'} →
+                  {problem.status === 'not_started' ? 'Start Problem' : 'View Details'} →
                 </button>
               </div>
             );

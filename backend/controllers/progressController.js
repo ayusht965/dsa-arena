@@ -44,7 +44,6 @@ exports.updateProgress = async (req, res) => {
   }
 
   try {
-    // Check if progress record exists
     const existing = await pool.query(
       'SELECT id FROM user_progress WHERE user_id = $1 AND problem_id = $2',
       [userId, problemId]
@@ -53,7 +52,6 @@ exports.updateProgress = async (req, res) => {
     let result;
 
     if (existing.rows.length === 0) {
-      // Create new progress record
       result = await pool.query(`
         INSERT INTO user_progress (user_id, problem_id, status, time_spent, notes, completed_at)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -67,7 +65,6 @@ exports.updateProgress = async (req, res) => {
         status === 'completed' ? new Date() : null
       ]);
     } else {
-      // Update existing progress
       result = await pool.query(`
         UPDATE user_progress 
         SET status = $1, 
@@ -95,6 +92,7 @@ exports.updateProgress = async (req, res) => {
 };
 
 // Get all user's problems with their progress (for My Problems page)
+// INCLUDES DELETED PROBLEMS - This is the historical record
 exports.getUserProblems = async (req, res) => {
   const userId = req.userId;
 
@@ -105,8 +103,10 @@ exports.getUserProblems = async (req, res) => {
         p.title,
         p.description,
         p.created_at,
+        p.deleted_at,
         g.name as group_name,
         g.id as group_id,
+        g.deleted_at as group_deleted_at,
         COALESCE(up.status, 'not_started') as status,
         COALESCE(up.time_spent, 0) as time_spent,
         up.completed_at,
@@ -140,7 +140,6 @@ exports.getGroupLeaderboard = async (req, res) => {
   const userId = req.userId;
 
   try {
-    // Check membership
     const membership = await pool.query(
       'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2',
       [groupId, userId]
@@ -150,7 +149,6 @@ exports.getGroupLeaderboard = async (req, res) => {
       return res.status(403).json({ msg: "Not a member of this group" });
     }
 
-    // Get leaderboard
     const result = await pool.query(`
       SELECT 
         u.id,
