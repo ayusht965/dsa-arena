@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
-import Logo from "../logo";
+import Logo from "../Logo";
 
 export default function AppLayout({ children, activePage = "dashboard" }) {
   const navigate = useNavigate();
