@@ -130,6 +130,32 @@ export default function GroupDetail() {
     }
   };
 
+  const handleDeleteProblem = async (problemId, problemTitle) => {
+    if (!confirm(`Are you sure you want to delete "${problemTitle}"? This will remove it for all group members.`)) {
+      return;
+    }
+
+    try {
+      await API.delete(`/problems/${problemId}`);
+      setProblems(problems.filter(p => p.id !== problemId));
+    } catch (err) {
+      alert(err.response?.data?.msg || "Failed to delete problem");
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!confirm(`Are you sure you want to delete "${group.name}"? This will delete all problems in this group and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await API.delete(`/groups/${id}`);
+      navigate("/groups");
+    } catch (err) {
+      alert(err.response?.data?.msg || "Failed to delete group");
+    }
+  };
+
   const handleInviteMember = async (e) => {
     e.preventDefault();
     setInviteError("");
@@ -199,6 +225,12 @@ export default function GroupDetail() {
             >
               Invite Members
             </button>
+            <button
+              onClick={handleDeleteGroup}
+              className="px-5 py-2.5 bg-red-950/30 text-red-400 rounded-lg hover:bg-red-950/50 transition"
+            >
+              Delete Group
+            </button>
           </div>
         )}
       </div>
@@ -256,9 +288,20 @@ export default function GroupDetail() {
               {problems.map((problem) => (
                 <div
                   key={problem.id}
-                  className="bg-card border border-border rounded-2xl p-6 shadow-xl hover:shadow-2xl transition"
+                  className="bg-card border border-border rounded-2xl p-6 shadow-xl hover:shadow-2xl transition relative group"
                 >
-                  <div className="flex justify-between items-start mb-4">
+                  {/* Delete button - only for admin */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeleteProblem(problem.id, problem.title)}
+                      className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-950/50 rounded-lg"
+                      title="Delete problem"
+                    >
+                      <span className="text-red-400 text-xl">🗑️</span>
+                    </button>
+                  )}
+
+                  <div className="flex justify-between items-start mb-4 pr-12">
                     <div className="flex-1">
                       <h3 className="text-xl font-bold mb-2">{problem.title}</h3>
                       <p className="text-gray-400 text-sm line-clamp-2 mb-3">

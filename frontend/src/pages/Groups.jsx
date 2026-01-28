@@ -43,7 +43,6 @@ export default function Groups() {
     setCreateError("");
     setCreating(true);
 
-    // Validation
     if (!newGroup.name.trim()) {
       setCreateError("Group name is required");
       setCreating(false);
@@ -56,10 +55,7 @@ export default function Groups() {
         description: newGroup.description.trim() || null
       });
 
-      // Add new group to the list
       setGroups([res.data, ...groups]);
-      
-      // Reset form and close modal
       setShowCreateModal(false);
       setNewGroup({ name: "", description: "" });
       setCreateError("");
@@ -67,6 +63,21 @@ export default function Groups() {
       setCreateError(err.response?.data?.msg || err.response?.data?.error || "Failed to create group");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId, groupName, e) => {
+    e.stopPropagation();
+
+    if (!confirm(`Are you sure you want to delete "${groupName}"? This will delete all problems in this group and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await API.delete(`/groups/${groupId}`);
+      setGroups(groups.filter(g => g.id !== groupId));
+    } catch (err) {
+      alert(err.response?.data?.msg || "Failed to delete group");
     }
   };
 
@@ -122,9 +133,18 @@ export default function Groups() {
           {groups.map((group) => (
             <div
               key={group.id}
-              className="bg-card border border-border rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+              className="bg-card border border-border rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] cursor-pointer relative group"
               onClick={() => handleOpenGroup(group.id)}
             >
+              {/* Delete button - only for admin (creator) */}
+              <button
+                onClick={(e) => handleDeleteGroup(group.id, group.name, e)}
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-950/50 rounded-lg"
+                title="Delete group"
+              >
+                <span className="text-red-400 text-xl">🗑️</span>
+              </button>
+
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-black font-bold text-xl flex-shrink-0">
                   {group.name.charAt(0).toUpperCase()}

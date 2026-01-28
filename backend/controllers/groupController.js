@@ -93,3 +93,41 @@ exports.getGroupById = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch group" });
   }
 };
+
+exports.deleteGroup = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.userId;
+
+  try {
+    // Check if user is admin
+    const adminCheck = await pool.query(
+      'SELECT admin_id FROM groups WHERE id = $1',
+      [id]
+    );
+
+    if (adminCheck.rows.length === 0) {
+      return res.status(404).json({ msg: "Group not found" });
+    }
+
+    const adminId = adminCheck.rows[0].admin_id;
+
+    if (adminId !== userId) {
+      return res.status(403).json({ msg: "Only group admin can delete the group" });
+    }
+
+    // Delete the group (cascade will handle group_members and group_problems)
+    const result = await pool.query(
+      'DELETE FROM groups WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: "Group not found" });
+    }
+
+    res.json({ msg: "Group deleted successfully", group: result.rows[0] });
+  } catch (err) {
+    console.error("Delete group error:", err);
+    res.status(500).json({ error: "Failed to delete group" });
+  }
+};
