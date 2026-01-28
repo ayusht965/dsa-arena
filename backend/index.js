@@ -13,16 +13,18 @@ app.use(express.json());
 const authRoutes = require("./routes/authRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 const problemRoutes = require("./routes/problemRoutes");
-const groupProblemRoutes = require("./routes/groupProblemRoutes");  // NEW
+const groupProblemRoutes = require("./routes/groupProblemRoutes");
 const memberRoutes = require("./routes/memberRoutes");
 const progressRoutes = require("./routes/progressRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
-app.use("/api/groups", groupProblemRoutes);  // NEW - handles /groups/:groupId/problems
+app.use("/api/groups", groupProblemRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/groups", memberRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Health check
 app.get("/", (req, res) => {

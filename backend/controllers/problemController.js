@@ -2,9 +2,9 @@
 const pool = require("../models/db");
 
 exports.createProblem = async (req, res) => {
-  const { title, description, examples, constraints } = req.body;
+  const { title, description, examples, constraints, platform_link } = req.body;
   const groupId = req.params.groupId;
-  const creatorId = req.userId; // from JWT middleware
+  const creatorId = req.userId;
 
   // Validation
   if (!title || !description) {
@@ -34,14 +34,15 @@ exports.createProblem = async (req, res) => {
 
     // 2. Create the problem
     const problemResult = await pool.query(
-      `INSERT INTO problems (title, description, examples, constraints, created_by)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO problems (title, description, examples, constraints, platform_link, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [
         title.trim(),
         description.trim(),
         examples?.trim() || null,
         constraints?.trim() || null,
+        platform_link?.trim() || null,
         creatorId
       ]
     );
@@ -140,7 +141,7 @@ exports.getProblemById = async (req, res) => {
 
 exports.updateProblem = async (req, res) => {
   const { id } = req.params;
-  const { title, description, examples, constraints } = req.body;
+  const { title, description, examples, constraints, platform_link } = req.body;
   const userId = req.userId;
 
   try {
@@ -159,10 +160,10 @@ exports.updateProblem = async (req, res) => {
 
     const result = await pool.query(`
       UPDATE problems
-      SET title = $1, description = $2, examples = $3, constraints = $4, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5
+      SET title = $1, description = $2, examples = $3, constraints = $4, platform_link = $5, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $6
       RETURNING *
-    `, [title, description, examples, constraints, id]);
+    `, [title, description, examples, constraints, platform_link, id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ msg: "Problem not found" });

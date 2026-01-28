@@ -37,7 +37,7 @@ export default function AppLayout({ children, activePage = "dashboard" }) {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/login"); // or "/" depending on your flow
+    navigate("/");
   };
 
   return (

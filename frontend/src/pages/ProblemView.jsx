@@ -87,11 +87,11 @@ export default function ProblemView() {
         ← Back
       </button>
 
-      {/* Header with Status */}
+      {/* Header with Status and Platform Link */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h1 className="text-4xl font-bold mb-2">{problem.title}</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)}`}>
               {status.replace('_', ' ').toUpperCase()}
             </span>
@@ -102,6 +102,17 @@ export default function ProblemView() {
             )}
           </div>
         </div>
+        
+        {problem.platform_link && (
+          <a
+            href={problem.platform_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 bg-primary/20 text-primary font-semibold rounded-lg hover:bg-primary/30 transition flex items-center gap-2"
+          >
+            🔗 Open on Platform
+          </a>
+        )}
       </div>
 
       {/* Problem Description */}

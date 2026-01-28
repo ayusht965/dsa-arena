@@ -199,7 +199,7 @@ export default function MyProblems() {
                   onClick={() => navigate(`/problems/${problem.id}`)}
                   className="w-full sm:w-auto px-6 py-3 bg-primary/20 text-primary font-semibold rounded-lg hover:bg-primary/30 transition"
                 >
-                  {problem.status === 'not_started' ? 'Start Problem' : 'Continue'} →
+                  {problem.status === 'not_started' ? 'Start Problem' : 'View'} →
                 </button>
               </div>
             );

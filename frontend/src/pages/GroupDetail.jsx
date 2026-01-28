@@ -29,7 +29,8 @@ export default function GroupDetail() {
     title: "",
     description: "",
     examples: "",
-    constraints: ""
+    constraints: "",
+    platform_link: ""
   });
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function GroupDetail() {
       setError(err.response?.data?.msg || "Failed to load data");
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem("token");
-        navigate("/login");
+        navigate("/");
       }
     } finally {
       setLoading(false);
@@ -97,7 +98,6 @@ export default function GroupDetail() {
     setCreateError("");
     setCreating(true);
 
-    // Validation
     if (!newProblem.title.trim()) {
       setCreateError("Title is required");
       setCreating(false);
@@ -115,15 +115,13 @@ export default function GroupDetail() {
         title: newProblem.title.trim(),
         description: newProblem.description.trim(),
         examples: newProblem.examples.trim() || null,
-        constraints: newProblem.constraints.trim() || null
+        constraints: newProblem.constraints.trim() || null,
+        platform_link: newProblem.platform_link.trim() || null
       });
 
-      // Add new problem to the list
       setProblems([res.data, ...problems]);
-      
-      // Reset form and close modal
       setShowCreateModal(false);
-      setNewProblem({ title: "", description: "", examples: "", constraints: "" });
+      setNewProblem({ title: "", description: "", examples: "", constraints: "", platform_link: "" });
       setCreateError("");
     } catch (err) {
       setCreateError(err.response?.data?.msg || "Failed to create problem");
@@ -142,7 +140,6 @@ export default function GroupDetail() {
       setShowInviteModal(false);
       setInviteEmail("");
       
-      // Update member count in group
       if (group) {
         setGroup({ ...group, member_count: (group.member_count || 0) + 1 });
       }
@@ -158,7 +155,6 @@ export default function GroupDetail() {
       await API.delete(`/groups/${id}/members/${memberId}`);
       setMembers(members.filter(m => m.id !== memberId));
       
-      // Update member count
       if (group) {
         setGroup({ ...group, member_count: Math.max(0, (group.member_count || 0) - 1) });
       }
@@ -250,9 +246,7 @@ export default function GroupDetail() {
 
           {problems.length === 0 ? (
             <div className="text-center py-12 bg-card/50 rounded-2xl border border-border/50">
-              <p className="text-muted text-lg mb-2">
-                No problems yet
-              </p>
+              <p className="text-muted text-lg mb-2">No problems yet</p>
               <p className="text-muted/70 text-sm">
                 {isAdmin ? "Create your first problem to get started!" : "Ask the admin to create some problems."}
               </p>
@@ -267,9 +261,20 @@ export default function GroupDetail() {
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <h3 className="text-xl font-bold mb-2">{problem.title}</h3>
-                      <p className="text-gray-400 text-sm line-clamp-2">
+                      <p className="text-gray-400 text-sm line-clamp-2 mb-3">
                         {problem.description}
                       </p>
+                      {problem.platform_link && (
+                        <a
+                          href={problem.platform_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          🔗 View on Platform →
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -402,6 +407,22 @@ export default function GroupDetail() {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
+                  Platform Link (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={newProblem.platform_link}
+                  onChange={(e) => setNewProblem({ ...newProblem, platform_link: e.target.value })}
+                  className="w-full p-3 rounded-lg bg-bg border border-border text-white focus:outline-none focus:border-primary"
+                  placeholder="https://leetcode.com/problems/two-sum/"
+                />
+                <p className="text-xs text-muted mt-1">
+                  Link to LeetCode, HackerRank, or other platform
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
                   Description *
                 </label>
                 <textarea
@@ -451,7 +472,7 @@ export default function GroupDetail() {
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
-                    setNewProblem({ title: "", description: "", examples: "", constraints: "" });
+                    setNewProblem({ title: "", description: "", examples: "", constraints: "", platform_link: "" });
                     setCreateError("");
                   }}
                   className="px-6 py-3 bg-card border border-border rounded-lg hover:bg-border/30 transition"
