@@ -1,4 +1,3 @@
-// Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
@@ -9,6 +8,7 @@ export default function Login() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -18,13 +18,24 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
+      console.log("Attempting login with:", { email: form.email }); // Debug log
       const res = await API.post("/auth/login", form);
+      console.log("Login successful:", res.data); // Debug log
+      
       localStorage.setItem("token", res.data.token);
-      navigate("/dashboard"); // or "/groups" if that's your post-login route
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.msg || "Login failed. Check your credentials.");
+      console.error("Login error:", err); // Debug log
+      const errorMsg = err.response?.data?.msg || 
+                       err.response?.data?.error || 
+                       err.message ||
+                       "Login failed. Please check your credentials.";
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,6 +57,7 @@ export default function Login() {
           placeholder="Email"
           className="w-full p-3 rounded-lg bg-transparent border border-border text-white placeholder-muted focus:outline-none focus:border-primary"
           required
+          disabled={loading}
         />
 
         <input
@@ -56,17 +68,21 @@ export default function Login() {
           placeholder="Password"
           className="w-full p-3 rounded-lg bg-transparent border border-border text-white placeholder-muted focus:outline-none focus:border-primary"
           required
+          disabled={loading}
         />
 
         {error && (
-          <p className="text-red-400 text-sm text-center">{error}</p>
+          <div className="bg-red-950/30 border border-red-400/50 rounded-lg p-3 text-red-400 text-sm">
+            {error}
+          </div>
         )}
 
         <button
           type="submit"
-          className="w-full py-3 rounded-lg font-semibold text-black bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition"
+          className="w-full py-3 rounded-lg font-semibold text-black bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition disabled:opacity-50"
+          disabled={loading}
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
 
         <p className="text-sm text-muted text-center">
