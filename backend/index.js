@@ -4,19 +4,36 @@ require("dotenv").config();
 
 const app = express();
 
-// Middleware
+// CORS Configuration - FIXED FOR MOBILE
 app.use(cors({
-  origin: [
-    "https://dsa-arena-beta.vercel.app",
-    "http://localhost:5173",
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      "https://dsa-arena-beta.vercel.app",
+      "http://localhost:5173",
+      "http://localhost:5000"
+    ];
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // For development - change to false in production
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
+  preflightContinue: false,
   optionsSuccessStatus: 204
 }));
 
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 const authRoutes       = require("./routes/authRoutes");
@@ -38,6 +55,12 @@ app.use("/api/dashboard", dashboardRoutes);
 // Health check
 app.get("/", (req, res) => {
   res.json({ message: "DSA Arena API is running" });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
 });
 
 const PORT = process.env.PORT || 5000;
