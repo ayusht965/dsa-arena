@@ -4,8 +4,8 @@ require("dotenv").config();
 
 const app = express();
 
-// CORS Configuration - FIXED FOR MOBILE
-app.use(cors({
+// CORS Configuration
+const corsOptions = {
   origin: function(origin, callback) {
     const allowedOrigins = [
       "https://dsa-arena-beta.vercel.app",
@@ -27,11 +27,12 @@ app.use(cors({
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204
-}));
+};
 
-// Handle preflight requests
-app.options('*', cors());
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -55,6 +56,11 @@ app.use("/api/dashboard", dashboardRoutes);
 // Health check
 app.get("/", (req, res) => {
   res.json({ message: "DSA Arena API is running" });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
 });
 
 // Error handling middleware
