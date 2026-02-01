@@ -93,6 +93,7 @@ exports.updateProgress = async (req, res) => {
 
 // Get all user's problems with their progress (for My Problems page)
 // INCLUDES DELETED PROBLEMS - This is the historical record
+// ONLY shows problems created after user joined (unless admin)
 exports.getUserProblems = async (req, res) => {
   const userId = req.userId;
 
@@ -107,6 +108,9 @@ exports.getUserProblems = async (req, res) => {
         g.name as group_name,
         g.id as group_id,
         g.deleted_at as group_deleted_at,
+        g.admin_id,
+        gm.joined_at,
+        CASE WHEN g.admin_id = $1 THEN true ELSE false END as is_admin,
         COALESCE(up.status, 'not_started') as status,
         COALESCE(up.time_spent, 0) as time_spent,
         up.completed_at,
@@ -117,6 +121,10 @@ exports.getUserProblems = async (req, res) => {
       JOIN group_members gm ON g.id = gm.group_id
       LEFT JOIN user_progress up ON p.id = up.problem_id AND up.user_id = $1
       WHERE gm.user_id = $1
+        AND (
+          p.created_at >= gm.joined_at  -- Problem created after user joined
+          OR g.admin_id = $1              -- OR user is admin
+        )
       ORDER BY 
         CASE 
           WHEN up.status = 'in_progress' THEN 1
@@ -149,17 +157,34 @@ exports.getGroupLeaderboard = async (req, res) => {
       return res.status(403).json({ msg: "Not a member of this group" });
     }
 
+    // Leaderboard only counts problems that were available to each user
+    // (created after they joined OR if they're admin)
     const result = await pool.query(`
       SELECT 
         u.id,
         u.name,
-        COUNT(CASE WHEN up.status = 'completed' THEN 1 END) as problems_solved,
-        COALESCE(SUM(CASE WHEN up.status = 'completed' THEN up.time_spent ELSE 0 END), 0) as total_time,
-        COALESCE(AVG(CASE WHEN up.status = 'completed' THEN up.time_spent END), 0) as avg_time
+        COUNT(CASE 
+          WHEN up.status = 'completed' 
+          AND (p.created_at >= gm.joined_at OR g.admin_id = u.id)
+          THEN 1 
+        END) as problems_solved,
+        COALESCE(SUM(CASE 
+          WHEN up.status = 'completed' 
+          AND (p.created_at >= gm.joined_at OR g.admin_id = u.id)
+          THEN up.time_spent 
+          ELSE 0 
+        END), 0) as total_time,
+        COALESCE(AVG(CASE 
+          WHEN up.status = 'completed' 
+          AND (p.created_at >= gm.joined_at OR g.admin_id = u.id)
+          THEN up.time_spent 
+        END), 0) as avg_time
       FROM group_members gm
       JOIN users u ON gm.user_id = u.id
+      JOIN groups g ON gm.group_id = g.id
       LEFT JOIN user_progress up ON u.id = up.user_id
       LEFT JOIN group_problems gp ON up.problem_id = gp.problem_id AND gp.group_id = $1
+      LEFT JOIN problems p ON up.problem_id = p.id
       WHERE gm.group_id = $1
       GROUP BY u.id, u.name
       ORDER BY problems_solved DESC, total_time ASC

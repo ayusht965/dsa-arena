@@ -74,8 +74,9 @@ exports.getGroupProblems = async (req, res) => {
   const userId = req.userId;
 
   try {
+    // Check membership and get join date
     const membership = await pool.query(
-      "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
+      'SELECT joined_at FROM group_members WHERE group_id = $1 AND user_id = $2',
       [groupId, userId]
     );
 
@@ -83,14 +84,25 @@ exports.getGroupProblems = async (req, res) => {
       return res.status(403).json({ msg: "You are not a member of this group" });
     }
 
-    // Only show non-deleted problems
+    const joinedAt = membership.rows[0].joined_at;
+
+    // Only show problems created after user joined (or if user is admin, show all)
     const result = await pool.query(`
-      SELECT p.*
+      SELECT 
+        p.*,
+        g.admin_id,
+        CASE WHEN g.admin_id = $2 THEN true ELSE false END as is_admin
       FROM problems p
       JOIN group_problems gp ON p.id = gp.problem_id
-      WHERE gp.group_id = $1 AND p.deleted_at IS NULL
+      JOIN groups g ON gp.group_id = g.id
+      WHERE gp.group_id = $1 
+        AND p.deleted_at IS NULL
+        AND (
+          p.created_at >= $3  -- Problem created after user joined
+          OR g.admin_id = $2   -- OR user is admin (sees all problems)
+        )
       ORDER BY p.created_at DESC
-    `, [groupId]);
+    `, [groupId, userId, joinedAt]);
 
     res.json(result.rows);
   } catch (err) {
@@ -116,16 +128,29 @@ exports.getProblemById = async (req, res) => {
 
     const problem = problemResult.rows[0];
 
+    // Check if user has access (member of group with this problem)
+    // Also check if problem was created after user joined OR user is admin
     const accessCheck = await pool.query(`
-      SELECT 1 
+      SELECT 
+        gm.joined_at,
+        g.admin_id,
+        CASE WHEN g.admin_id = $2 THEN true ELSE false END as is_admin
       FROM group_problems gp
       JOIN group_members gm ON gp.group_id = gm.group_id
+      JOIN groups g ON gp.group_id = g.id
       WHERE gp.problem_id = $1 AND gm.user_id = $2
       LIMIT 1
     `, [id, userId]);
 
     if (accessCheck.rows.length === 0) {
       return res.status(403).json({ msg: "You don't have access to this problem" });
+    }
+
+    const { joined_at, is_admin } = accessCheck.rows[0];
+
+    // Check if problem was created after user joined OR user is admin
+    if (!is_admin && new Date(problem.created_at) < new Date(joined_at)) {
+      return res.status(403).json({ msg: "This problem was created before you joined the group" });
     }
 
     res.json(problem);
