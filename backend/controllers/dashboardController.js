@@ -6,7 +6,7 @@ exports.getDashboardStats = async (req, res) => {
 
   try {
     const userResult = await pool.query(
-      'SELECT id, name, email FROM users WHERE id = $1',
+      'SELECT id, name, email, weekly_goal FROM users WHERE id = $1',
       [userId]
     );
 
@@ -16,10 +16,14 @@ exports.getDashboardStats = async (req, res) => {
 
     const user = userResult.rows[0];
 
+    // Get total problems solved and points earned
     const solvedResult = await pool.query(`
-      SELECT COUNT(*) as problems_solved
-      FROM user_progress
-      WHERE user_id = $1 AND status = 'completed'
+      SELECT 
+        COUNT(*) as problems_solved,
+        COALESCE(SUM(p.points), 0) as total_points
+      FROM user_progress up
+      JOIN problems p ON up.problem_id = p.id
+      WHERE up.user_id = $1 AND up.status = 'completed'
     `, [userId]);
 
     const timeResult = await pool.query(`
@@ -29,7 +33,7 @@ exports.getDashboardStats = async (req, res) => {
     `, [userId]);
 
     const problemsSolved = parseInt(solvedResult.rows[0].problems_solved);
-    const points = problemsSolved * 10;
+    const points = parseInt(solvedResult.rows[0].total_points);
     const totalMinutes = parseInt(timeResult.rows[0].total_time);
     
     const hours = Math.floor(totalMinutes / 60);
@@ -50,7 +54,7 @@ exports.getDashboardStats = async (req, res) => {
         AND completed_at >= CURRENT_DATE - INTERVAL '7 days'
     `, [userId]);
 
-    const weeklyGoal = 5;
+    const weeklyGoal = user.weekly_goal || 5;
     const weeklySolved = parseInt(weeklyResult.rows[0].weekly_solved);
     const weeklyProgress = Math.min(100, Math.round((weeklySolved / weeklyGoal) * 100));
 
@@ -58,6 +62,8 @@ exports.getDashboardStats = async (req, res) => {
       SELECT 
         p.id,
         p.title,
+        p.points,
+        p.difficulty,
         up.completed_at,
         up.time_spent,
         g.name as group_name
@@ -70,7 +76,6 @@ exports.getDashboardStats = async (req, res) => {
       LIMIT 5
     `, [userId]);
 
-    // Get heatmap data (last 365 days)
     const heatmapResult = await pool.query(`
       SELECT 
         DATE(completed_at) as date,

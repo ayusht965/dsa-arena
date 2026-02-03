@@ -2,7 +2,7 @@
 const pool = require("../models/db");
 
 exports.createProblem = async (req, res) => {
-  const { title, description, examples, constraints, platform_link } = req.body;
+  const { title, description, examples, constraints, platform_link, points, difficulty } = req.body;
   const groupId = req.params.groupId;
   const creatorId = req.userId;
 
@@ -12,6 +12,18 @@ exports.createProblem = async (req, res) => {
 
   if (!groupId) {
     return res.status(400).json({ msg: "Group ID is required in URL" });
+  }
+
+  // Validate difficulty
+  const validDifficulties = ['easy', 'medium', 'hard'];
+  const problemDifficulty = difficulty && validDifficulties.includes(difficulty) ? difficulty : 'medium';
+
+  // Validate points (default based on difficulty if not provided)
+  let problemPoints = points;
+  if (!problemPoints || problemPoints < 0) {
+    // Default points based on difficulty
+    problemPoints = problemDifficulty === 'easy' ? 10 : 
+                    problemDifficulty === 'medium' ? 20 : 30;
   }
 
   try {
@@ -31,8 +43,8 @@ exports.createProblem = async (req, res) => {
     }
 
     const problemResult = await pool.query(
-      `INSERT INTO problems (title, description, examples, constraints, platform_link, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO problems (title, description, examples, constraints, platform_link, points, difficulty, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         title.trim(),
@@ -40,6 +52,8 @@ exports.createProblem = async (req, res) => {
         examples?.trim() || null,
         constraints?.trim() || null,
         platform_link?.trim() || null,
+        problemPoints,
+        problemDifficulty,
         creatorId
       ]
     );
@@ -75,7 +89,7 @@ exports.getGroupProblems = async (req, res) => {
 
   try {
     const membership = await pool.query(
-      "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
+      'SELECT joined_at FROM group_members WHERE group_id = $1 AND user_id = $2',
       [groupId, userId]
     );
 
@@ -83,14 +97,24 @@ exports.getGroupProblems = async (req, res) => {
       return res.status(403).json({ msg: "You are not a member of this group" });
     }
 
-    // Only show non-deleted problems
+    const joinedAt = membership.rows[0].joined_at;
+
     const result = await pool.query(`
-      SELECT p.*
+      SELECT 
+        p.*,
+        g.admin_id,
+        CASE WHEN g.admin_id = $2 THEN true ELSE false END as is_admin
       FROM problems p
       JOIN group_problems gp ON p.id = gp.problem_id
-      WHERE gp.group_id = $1 AND p.deleted_at IS NULL
+      JOIN groups g ON gp.group_id = g.id
+      WHERE gp.group_id = $1 
+        AND p.deleted_at IS NULL
+        AND (
+          p.created_at >= $3
+          OR g.admin_id = $2
+        )
       ORDER BY p.created_at DESC
-    `, [groupId]);
+    `, [groupId, userId, joinedAt]);
 
     res.json(result.rows);
   } catch (err) {
@@ -104,7 +128,6 @@ exports.getProblemById = async (req, res) => {
   const userId = req.userId;
 
   try {
-    // Allow viewing deleted problems (for history)
     const problemResult = await pool.query(
       "SELECT * FROM problems WHERE id = $1",
       [id]
@@ -117,15 +140,25 @@ exports.getProblemById = async (req, res) => {
     const problem = problemResult.rows[0];
 
     const accessCheck = await pool.query(`
-      SELECT 1 
+      SELECT 
+        gm.joined_at,
+        g.admin_id,
+        CASE WHEN g.admin_id = $2 THEN true ELSE false END as is_admin
       FROM group_problems gp
       JOIN group_members gm ON gp.group_id = gm.group_id
+      JOIN groups g ON gp.group_id = g.id
       WHERE gp.problem_id = $1 AND gm.user_id = $2
       LIMIT 1
     `, [id, userId]);
 
     if (accessCheck.rows.length === 0) {
       return res.status(403).json({ msg: "You don't have access to this problem" });
+    }
+
+    const { joined_at, is_admin } = accessCheck.rows[0];
+
+    if (!is_admin && new Date(problem.created_at) < new Date(joined_at)) {
+      return res.status(403).json({ msg: "This problem was created before you joined the group" });
     }
 
     res.json(problem);
@@ -137,7 +170,7 @@ exports.getProblemById = async (req, res) => {
 
 exports.updateProblem = async (req, res) => {
   const { id } = req.params;
-  const { title, description, examples, constraints, platform_link } = req.body;
+  const { title, description, examples, constraints, platform_link, points, difficulty } = req.body;
   const userId = req.userId;
 
   try {
@@ -153,12 +186,16 @@ exports.updateProblem = async (req, res) => {
       return res.status(403).json({ msg: "Only the group admin can update this problem" });
     }
 
+    const validDifficulties = ['easy', 'medium', 'hard'];
+    const problemDifficulty = difficulty && validDifficulties.includes(difficulty) ? difficulty : 'medium';
+
     const result = await pool.query(`
       UPDATE problems
-      SET title = $1, description = $2, examples = $3, constraints = $4, platform_link = $5, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6 AND deleted_at IS NULL
+      SET title = $1, description = $2, examples = $3, constraints = $4, 
+          platform_link = $5, points = $6, difficulty = $7, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8 AND deleted_at IS NULL
       RETURNING *
-    `, [title, description, examples, constraints, platform_link, id]);
+    `, [title, description, examples, constraints, platform_link, points, problemDifficulty, id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ msg: "Problem not found" });
@@ -188,7 +225,6 @@ exports.deleteProblem = async (req, res) => {
       return res.status(403).json({ msg: "Only the group admin can delete this problem" });
     }
 
-    // Soft delete the problem
     const result = await pool.query(
       "UPDATE problems SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL RETURNING *",
       [id]
