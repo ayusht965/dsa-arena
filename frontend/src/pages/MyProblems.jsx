@@ -50,6 +50,14 @@ export default function MyProblems() {
     return `${mins} mins`;
   };
 
+    const getDifficultyColor = (difficulty) => {
+    switch(difficulty) {
+      case 'easy': return 'text-green-400 bg-green-400/10';
+      case 'hard': return 'text-red-400 bg-red-400/10';
+      default: return 'text-yellow-400 bg-yellow-400/10';
+    }
+  };
+
   const stats = {
     total: problems.length,
     completed: problems.filter(p => p.status === 'completed').length,
@@ -169,7 +177,15 @@ export default function MyProblems() {
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <h3 className="text-xl font-bold">{problem.title}</h3>
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-xl font-bold">{problem.title}</h3>
+                        <span className={`text-xs px-2 py-1 rounded capitalize ${getDifficultyColor(problem.difficulty)}`}>
+                          {problem.difficulty}
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">
+                          {problem.points} pts
+                        </span>
+                      </div>
                       {isProblemDeleted && (
                         <span className="text-xs bg-red-950/50 text-red-400 px-2 py-1 rounded">
                           Problem Deleted

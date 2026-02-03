@@ -1,4 +1,3 @@
-// src/pages/GroupDetail.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
@@ -27,10 +26,12 @@ export default function GroupDetail() {
   
   const [newProblem, setNewProblem] = useState({
     title: "",
-    description: "",
-    examples: "",
-    constraints: "",
-    platform_link: ""
+  description: "",
+  examples: "",
+  constraints: "",
+  platform_link: "",
+  difficulty: "medium",
+  points: 20 
   });
 
   useEffect(() => {
@@ -39,7 +40,6 @@ export default function GroupDetail() {
       setLoading(false);
       return;
     }
-
     fetchData();
   }, [id, navigate]);
 
@@ -47,19 +47,16 @@ export default function GroupDetail() {
     try {
       const userRes = await API.get("/auth/me");
       setCurrentUser(userRes.data);
-
       const groupRes = await API.get(`/groups/${id}`);
       setGroup(groupRes.data);
-
       const problemsRes = await API.get(`/groups/${id}/problems`);
       setProblems(problemsRes.data);
-
       setIsAdmin(groupRes.data.admin_id === userRes.data.id);
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to load data");
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem("token");
-        navigate("/");
+        navigate("/login");
       }
     } finally {
       setLoading(false);
@@ -85,12 +82,8 @@ export default function GroupDetail() {
   };
 
   useEffect(() => {
-    if (activeTab === "members" && members.length === 0) {
-      fetchMembers();
-    }
-    if (activeTab === "leaderboard" && leaderboard.length === 0) {
-      fetchLeaderboard();
-    }
+    if (activeTab === "members" && members.length === 0) fetchMembers();
+    if (activeTab === "leaderboard" && leaderboard.length === 0) fetchLeaderboard();
   }, [activeTab]);
 
   const handleCreateProblem = async (e) => {
@@ -116,12 +109,14 @@ export default function GroupDetail() {
         description: newProblem.description.trim(),
         examples: newProblem.examples.trim() || null,
         constraints: newProblem.constraints.trim() || null,
-        platform_link: newProblem.platform_link.trim() || null
+        platform_link: newProblem.platform_link.trim() || null,
+        difficulty: newProblem.difficulty,
+        points: parseInt(newProblem.points) || 20
       });
 
       setProblems([res.data, ...problems]);
       setShowCreateModal(false);
-      setNewProblem({ title: "", description: "", examples: "", constraints: "", platform_link: "" });
+      setNewProblem({ title: "", description: "", examples: "", constraints: "", platform_link: "", difficulty: "medium", points: 20 });
       setCreateError("");
     } catch (err) {
       setCreateError(err.response?.data?.msg || "Failed to create problem");
@@ -130,11 +125,13 @@ export default function GroupDetail() {
     }
   };
 
-  const handleDeleteProblem = async (problemId, problemTitle) => {
-    if (!confirm(`Are you sure you want to delete "${problemTitle}"? This will remove it for all group members.`)) {
-      return;
-    }
+  const handleDifficultyChange = (difficulty) => {
+    const defaultPoints = { easy: 10, medium: 20, hard: 30 };
+    setNewProblem({ ...newProblem, difficulty, points: defaultPoints[difficulty] });
+  };
 
+  const handleDeleteProblem = async (problemId, problemTitle) => {
+    if (!confirm(`Are you sure you want to delete "${problemTitle}"?`)) return;
     try {
       await API.delete(`/problems/${problemId}`);
       setProblems(problems.filter(p => p.id !== problemId));
@@ -144,10 +141,7 @@ export default function GroupDetail() {
   };
 
   const handleDeleteGroup = async () => {
-    if (!confirm(`Are you sure you want to delete "${group.name}"? This will delete all problems in this group and cannot be undone.`)) {
-      return;
-    }
-
+    if (!confirm(`Are you sure you want to delete "${group.name}"?`)) return;
     try {
       await API.delete(`/groups/${id}`);
       navigate("/groups");
@@ -159,16 +153,12 @@ export default function GroupDetail() {
   const handleInviteMember = async (e) => {
     e.preventDefault();
     setInviteError("");
-    
     try {
       const res = await API.post(`/groups/${id}/members`, { email: inviteEmail });
       setMembers([...members, res.data.member]);
       setShowInviteModal(false);
       setInviteEmail("");
-      
-      if (group) {
-        setGroup({ ...group, member_count: (group.member_count || 0) + 1 });
-      }
+      if (group) setGroup({ ...group, member_count: (group.member_count || 0) + 1 });
     } catch (err) {
       setInviteError(err.response?.data?.msg || "Failed to invite member");
     }
@@ -176,14 +166,10 @@ export default function GroupDetail() {
 
   const handleRemoveMember = async (memberId) => {
     if (!confirm("Are you sure you want to remove this member?")) return;
-
     try {
       await API.delete(`/groups/${id}/members/${memberId}`);
       setMembers(members.filter(m => m.id !== memberId));
-      
-      if (group) {
-        setGroup({ ...group, member_count: Math.max(0, (group.member_count || 0) - 1) });
-      }
+      if (group) setGroup({ ...group, member_count: Math.max(0, (group.member_count || 0) - 1) });
     } catch (err) {
       alert(err.response?.data?.msg || "Failed to remove member");
     }
@@ -201,9 +187,18 @@ export default function GroupDetail() {
     return `${mins} mins`;
   };
 
+  const getDifficultyColor = (difficulty) => {
+    switch(difficulty) {
+      case 'easy': return 'text-green-400 bg-green-400/10';
+      case 'hard': return 'text-red-400 bg-red-400/10';
+      default: return 'text-yellow-400 bg-yellow-400/10';
+    }
+  };
+
   if (loading) return <div className="text-center py-16 text-muted">Loading...</div>;
   if (error) return <div className="text-center py-16 text-red-400">{error}</div>;
 
+  // Component continues in next message due to length...
   return (
     <AppLayout activePage="groups">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -303,7 +298,15 @@ export default function GroupDetail() {
 
                   <div className="flex justify-between items-start mb-4 pr-12">
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-2">{problem.title}</h3>
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-xl font-bold">{problem.title}</h3>
+                        <span className={`text-xs px-2 py-1 rounded capitalize ${getDifficultyColor(problem.difficulty)}`}>
+                          {problem.difficulty}
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">
+                          {problem.points} pts
+                        </span>
+                      </div>
                       <p className="text-gray-400 text-sm line-clamp-2 mb-3">
                         {problem.description}
                       </p>
@@ -356,7 +359,7 @@ export default function GroupDetail() {
                     entry.id === currentUser?.id ? 'ring-2 ring-primary/50' : ''
                   }`}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1">
                     <div className={`text-2xl font-bold w-8 ${
                       index === 0 ? 'text-yellow-400' : 
                       index === 1 ? 'text-gray-400' : 
@@ -364,23 +367,23 @@ export default function GroupDetail() {
                     }`}>
                       #{index + 1}
                     </div>
-                    <div>
-                      <div className="font-semibold">
+                    <div className="flex-1">
+                      <div className="font-semibold flex items-center gap-2">
                         {entry.name}
                         {entry.id === currentUser?.id && (
-                          <span className="ml-2 text-xs text-primary">(You)</span>
+                          <span className="text-xs text-primary">(You)</span>
                         )}
                       </div>
                       <div className="text-sm text-muted">
-                        {entry.problems_solved} problems • {formatTime(entry.total_time)} total
+                        {entry.problems_solved} problems • {formatTime(entry.total_time)}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold text-green-400">
-                      {entry.problems_solved}
+                    <div className="text-2xl font-bold text-yellow-400">
+                      {entry.total_points}
                     </div>
-                    <div className="text-xs text-muted">solved</div>
+                    <div className="text-xs text-muted">points</div>
                   </div>
                 </div>
               ))}
@@ -462,6 +465,40 @@ export default function GroupDetail() {
                 <p className="text-xs text-muted mt-1">
                   Link to LeetCode, HackerRank, or other platform
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Difficulty *</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {['easy', 'medium', 'hard'].map(diff => (
+                    <button
+                      key={diff}
+                      type="button"
+                      onClick={() => handleDifficultyChange(diff)}
+                      className={`p-3 rounded-lg border-2 transition capitalize ${
+                        newProblem.difficulty === diff
+                          ? `border-${diff === 'easy' ? 'green' : diff === 'hard' ? 'red' : 'yellow'}-400 bg-${diff === 'easy' ? 'green' : diff === 'hard' ? 'red' : 'yellow'}-400/10`
+                          : 'border-border hover:border-muted'
+                      }`}
+                    >
+                      {diff}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Points *</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={newProblem.points}
+                  onChange={(e) => setNewProblem({ ...newProblem, points: e.target.value })}
+                  className="w-full p-3 rounded-lg bg-bg border border-border text-white focus:outline-none focus:border-primary"
+                  required
+                />
+                <p className="text-xs text-muted mt-1">Points awarded when completed</p>
               </div>
 
               <div>

@@ -2,13 +2,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
-import Logo from "../Logo";
 
 export default function AppLayout({ children, activePage = "dashboard" }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Optional: close sidebar on outside click (mobile only)
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -24,7 +22,6 @@ export default function AppLayout({ children, activePage = "dashboard" }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [sidebarOpen]);
 
-  // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = "hidden";
@@ -55,7 +52,7 @@ export default function AppLayout({ children, activePage = "dashboard" }) {
         <div className="p-6 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-black font-bold text-xl">
-              <Logo className="w-10 h-10" />
+              D
             </div>
             <h1 className="text-xl font-bold">DSA Arena</h1>
           </div>
@@ -102,6 +99,17 @@ export default function AppLayout({ children, activePage = "dashboard" }) {
           </button>
 
           <button
+            onClick={() => navigate("/profile")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+              activePage === "profile"
+                ? "bg-primary/15 text-primary font-medium"
+                : "hover:bg-white/5 text-muted hover:text-white"
+            }`}
+          >
+            <span className="text-xl">👤</span> Profile
+          </button>
+
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-950/30 text-red-400 hover:text-red-300 mt-10 transition"
           >
@@ -119,35 +127,31 @@ export default function AppLayout({ children, activePage = "dashboard" }) {
       )}
 
       {/* Mobile top bar */}
-
-        <header className="lg:hidden fixed top-0 left-0 right-0 z-[100] bg-card/80 backdrop-blur-sm border-b border-border shadow-sm">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-[100] bg-card/80 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="flex items-center justify-between px-5 py-4">
-            {/* hamburger */}
-            <button className="menu-toggle-btn text-2xl" onClick={() => setSidebarOpen(true)}>
+          <button className="menu-toggle-btn text-2xl" onClick={() => setSidebarOpen(true)}>
             ☰
-            </button>
+          </button>
 
-            {/* center logo + name */}
-            <div className="flex items-center gap-3 absolute left-1/2 -translate-x-1/2">
+          <div className="flex items-center gap-3 absolute left-1/2 -translate-x-1/2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-black font-bold">
-                <Logo className="w-10 h-10" />
+              D
             </div>
             <h1 className="text-lg font-bold">DSA Arena</h1>
-            </div>
+          </div>
 
-            {/* right spacer */}
-            <div className="w-8" />
+          <div className="w-8" />
         </div>
-        </header>
+      </header>
 
-        <main className="flex-1 pt-20 lg:pt-0 px-5 sm:px-6 md:px-8 overflow-auto">
+      <main className="flex-1 pt-20 lg:pt-0 px-5 sm:px-6 md:px-8 overflow-auto">
         {children}
-        </main>
+      </main>
     </div>
   );
 }
 
 AppLayout.propTypes = {
   children: PropTypes.node.isRequired,
-  activePage: PropTypes.oneOf(["dashboard", "groups", "my-problems", "other"]),
+  activePage: PropTypes.oneOf(["dashboard", "groups", "my-problems", "profile", "other"]),
 };
