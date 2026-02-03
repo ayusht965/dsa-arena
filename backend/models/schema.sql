@@ -114,3 +114,43 @@ CREATE INDEX IF NOT EXISTS idx_problems_deleted_at ON problems(deleted_at);
 
 COMMENT ON COLUMN groups.deleted_at IS 'Soft delete timestamp - NULL means active';
 COMMENT ON COLUMN problems.deleted_at IS 'Soft delete timestamp - NULL means active';
+
+
+-- Migration: Add points and difficulty to problems
+
+ALTER TABLE problems 
+ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 10,
+ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20) DEFAULT 'medium';
+
+-- Add constraint for difficulty values
+ALTER TABLE problems 
+ADD CONSTRAINT check_difficulty 
+CHECK (difficulty IN ('easy', 'medium', 'hard'));
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_problems_difficulty ON problems(difficulty);
+CREATE INDEX IF NOT EXISTS idx_problems_points ON problems(points);
+
+COMMENT ON COLUMN problems.points IS 'Points awarded for completing this problem';
+COMMENT ON COLUMN problems.difficulty IS 'Problem difficulty: easy, medium, or hard';
+
+
+-- Migration: Add user profile settings
+
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS bio TEXT,
+ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500),
+ADD COLUMN IF NOT EXISTS weekly_goal INTEGER DEFAULT 5,
+ADD COLUMN IF NOT EXISTS github_username VARCHAR(100),
+ADD COLUMN IF NOT EXISTS linkedin_url VARCHAR(200);
+
+-- Add constraints
+ALTER TABLE users 
+ADD CONSTRAINT check_weekly_goal 
+CHECK (weekly_goal >= 0 AND weekly_goal <= 100);
+
+COMMENT ON COLUMN users.bio IS 'User biography/about section';
+COMMENT ON COLUMN users.avatar_url IS 'Custom avatar URL';
+COMMENT ON COLUMN users.weekly_goal IS 'Number of problems to solve per week (0-100)';
+COMMENT ON COLUMN users.github_username IS 'GitHub username for profile linking';
+COMMENT ON COLUMN users.linkedin_url IS 'LinkedIn profile URL';

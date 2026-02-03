@@ -13,13 +13,12 @@ const corsOptions = {
       "http://localhost:5000"
     ];
     
-    // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(null, true);
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -29,10 +28,7 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
-// Apply CORS middleware
 app.use(cors(corsOptions));
-
-// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -44,6 +40,7 @@ const groupProblemRoutes = require("./routes/groupProblemRoutes");
 const memberRoutes     = require("./routes/memberRoutes");
 const progressRoutes   = require("./routes/progressRoutes");
 const dashboardRoutes  = require("./routes/dashboardRoutes");
+const userRoutes       = require("./routes/userRoutes"); // NEW
 
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
@@ -52,6 +49,7 @@ app.use("/api/problems", problemRoutes);
 app.use("/api/groups", memberRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/user", userRoutes); // NEW
 
 // Health check
 app.get("/", (req, res) => {

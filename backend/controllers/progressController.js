@@ -1,7 +1,6 @@
 // controllers/progressController.js
 const pool = require("../models/db");
 
-// Get user's progress on a specific problem
 exports.getProblemProgress = async (req, res) => {
   const { problemId } = req.params;
   const userId = req.userId;
@@ -28,7 +27,6 @@ exports.getProblemProgress = async (req, res) => {
   }
 };
 
-// Update user's progress on a problem
 exports.updateProgress = async (req, res) => {
   const { problemId } = req.params;
   const userId = req.userId;
@@ -91,9 +89,6 @@ exports.updateProgress = async (req, res) => {
   }
 };
 
-// Get all user's problems with their progress (for My Problems page)
-// INCLUDES DELETED PROBLEMS - This is the historical record
-// ONLY shows problems created after user joined (unless admin)
 exports.getUserProblems = async (req, res) => {
   const userId = req.userId;
 
@@ -103,6 +98,8 @@ exports.getUserProblems = async (req, res) => {
         p.id,
         p.title,
         p.description,
+        p.points,
+        p.difficulty,
         p.created_at,
         p.deleted_at,
         g.name as group_name,
@@ -122,8 +119,8 @@ exports.getUserProblems = async (req, res) => {
       LEFT JOIN user_progress up ON p.id = up.problem_id AND up.user_id = $1
       WHERE gm.user_id = $1
         AND (
-          p.created_at >= gm.joined_at  -- Problem created after user joined
-          OR g.admin_id = $1              -- OR user is admin
+          p.created_at >= gm.joined_at
+          OR g.admin_id = $1
         )
       ORDER BY 
         CASE 
@@ -142,7 +139,6 @@ exports.getUserProblems = async (req, res) => {
   }
 };
 
-// Get group leaderboard
 exports.getGroupLeaderboard = async (req, res) => {
   const { groupId } = req.params;
   const userId = req.userId;
@@ -157,8 +153,6 @@ exports.getGroupLeaderboard = async (req, res) => {
       return res.status(403).json({ msg: "Not a member of this group" });
     }
 
-    // Leaderboard only counts problems that were available to each user
-    // (created after they joined OR if they're admin)
     const result = await pool.query(`
       SELECT 
         u.id,
@@ -171,14 +165,15 @@ exports.getGroupLeaderboard = async (req, res) => {
         COALESCE(SUM(CASE 
           WHEN up.status = 'completed' 
           AND (p.created_at >= gm.joined_at OR g.admin_id = u.id)
-          THEN up.time_spent 
+          THEN p.points
           ELSE 0 
-        END), 0) as total_time,
-        COALESCE(AVG(CASE 
+        END), 0) as total_points,
+        COALESCE(SUM(CASE 
           WHEN up.status = 'completed' 
           AND (p.created_at >= gm.joined_at OR g.admin_id = u.id)
           THEN up.time_spent 
-        END), 0) as avg_time
+          ELSE 0 
+        END), 0) as total_time
       FROM group_members gm
       JOIN users u ON gm.user_id = u.id
       JOIN groups g ON gm.group_id = g.id
@@ -187,7 +182,7 @@ exports.getGroupLeaderboard = async (req, res) => {
       LEFT JOIN problems p ON up.problem_id = p.id
       WHERE gm.group_id = $1
       GROUP BY u.id, u.name
-      ORDER BY problems_solved DESC, total_time ASC
+      ORDER BY total_points DESC, problems_solved DESC, total_time ASC
     `, [groupId]);
 
     res.json(result.rows);
